@@ -81,7 +81,10 @@ fi
 # before launching. The container has no keychain access and cannot refresh
 # tokens itself — only the host claude binary can reach the system keychain.
 if [[ -f "$HOME/.claude/.credentials.json" ]]; then
-    _exp_ms=$(grep -o '"expiresAt":[0-9]*' "$HOME/.claude/.credentials.json" 2>/dev/null | head -1 | cut -d: -f2)
+    # Scope to the claudeAiOauth object: the file may also contain mcpOAuth
+    # entries with their own (often 0) expiresAt that appear earlier in the file,
+    # and a bare `head -1` would grab those instead of the real session token.
+    _exp_ms=$(grep -o '"claudeAiOauth":{[^}]*}' "$HOME/.claude/.credentials.json" 2>/dev/null | grep -o '"expiresAt":[0-9]*' | head -1 | cut -d: -f2)
     _expires_in=$(( ${_exp_ms:-0} / 1000 - $(date +%s) ))
     if (( _expires_in < 3600 )); then
         if command -v claude &>/dev/null; then
